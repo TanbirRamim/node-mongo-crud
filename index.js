@@ -1,13 +1,12 @@
-// run in cmd: npm run start-dev
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion } = require("mongodb");
-const { use } = require("express/lib/router");
-const objectId = require("mongodb").objectId;
+const ObjectId = require("mongodb").ObjectId;
+
 const app = express();
 const port = process.env.PORT || 5000;
 
-//use middleware
+// use middleware
 app.use(cors());
 app.use(express.json());
 
@@ -27,7 +26,7 @@ async function run() {
     await client.connect();
     const userCollection = client.db("foodExpress").collection("user");
 
-    //get users
+    // get users
     app.get("/user", async (req, res) => {
       const query = {};
       const cursor = userCollection.find(query);
@@ -35,7 +34,14 @@ async function run() {
       res.send(users);
     });
 
-    //POST user: add a new user
+    app.get("/user/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await userCollection.findOne(query);
+      res.send(result);
+    });
+
+    // POST User : add a new user
     app.post("/user", async (req, res) => {
       const newUser = req.body;
       console.log("adding new user", newUser);
@@ -43,23 +49,43 @@ async function run() {
       res.send(result);
     });
 
-    //delete a user
+    // update user
+    app.put("/user/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedUser = req.body;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          name: updatedUser.name,
+          email: updatedUser.email,
+        },
+      };
+      const result = await userCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+      res.send(result);
+    });
+
+    // delete a user
     app.delete("/user/:id", async (req, res) => {
       const id = req.params.id;
-      const query = { _id: objectId(id) };
+      const query = { _id: ObjectId(id) };
       const result = await userCollection.deleteOne(query);
       res.send(result);
     });
   } finally {
-    // await client.close();
   }
 }
+
 run().catch(console.dir);
 
 app.get("/", (req, res) => {
-  res.send("running my node CRUD Server");
+  res.send("Running My Node CRUD Server");
 });
 
 app.listen(port, () => {
-  console.log("CRUD server is running");
+  console.log("CRUD Server is running");
 });
